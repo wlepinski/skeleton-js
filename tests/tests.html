@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="qunit/qunit.css">
     <script src="qunit/qunit.js"></script>
     <script src="../libs/underscore-1.3.1.js"></script>
+    <script src="../libs/jquery-1.7.1.js"></script>
     <script src="../libs/backbone-0.9.1.js"></script>
 </head>
 <body>
@@ -20,10 +21,13 @@
         require.config({
             baseUrl: '../js',
             paths : {
-                'controllers' : '../tests/controllers'
+                'controllers' : '../tests/controllers',
+                'collections' : '../tests/collections',
+                'models' : '../tests/models',
+                'views' : '../tests/views'
             },
-            waitSeconds: 1,
-            urlArgs: 'bust=' +  (new Date()).getTime()
+            waitSeconds: 3,
+            //urlArgs: 'bust=' +  (new Date()).getTime()
         });
     </script>
 </body>

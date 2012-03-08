@@ -28,7 +28,8 @@ define [
 			@initializeControllers()
 			@initializeEvents()
 			return
-
+		
+		# Application.prototype should inherit the defaults from Backbone.Events
 		_(Application.prototype).defaults Backbone.Events
 
 		#
@@ -65,7 +66,7 @@ define [
 		# When a controller is loaded, we need to dispose the currentController and trigger the specified
 		# action the the loaded controller.
 		onControllerLoaded: (controllerName, action, params, controllerClass) ->
-			@disposeCurrentController
+			@disposeCurrentController()
 			@initializeController controllerName, params, controllerClass
 			@callControllerAction action, params
 
@@ -73,12 +74,19 @@ define [
 		# Disposes the actual controller loaded
 		disposeCurrentController: ->
 			if @currentController
-				if @currentController.dispose? and _.isFunction @currentController.dispose
-					throw new Error('Application#onControllerLoaded: A dispose method should be provided on ' + controllerName)
+				unless @currentController.dispose? and _.isFunction @currentController.dispose
+					throw new Error('Application#onControllerLoaded: A dispose method should be provided on ' + @currentControllerName)
 				@currentController.dispose()
 
+				# Clean up the fields
+				@currentController = null
+				@currentControllerName = null
+				@currentView = null
+				@currentViewParams = null
+				@currentParams = null
+
 		#
-		# 
+		# Instanciate a new controller and cache the properties
 		initializeController: (controllerName, params, controllerClass) ->
 			# Create a new instance and call the initialize method
 			controller = new controllerClass()
@@ -98,15 +106,23 @@ define [
 
 			actionName = StringExt.camelize action
 
-			unless typeof @currentController[action] is 'function'
-				throw new Error("ApplicationView#callControllerAction: We can't find a method called " + 
+			unless _.isFunction ( @currentController[action] )
+				throw new Error("Application#callControllerAction: We can't find a method called " + 
 					actionName + " on the controller " + @currentController.id)
 			
 			# Call the action passing the parameters
 			@currentController[actionName] params
 
+			# Sets the current view and current parameters
 			@currentView = @currentController.view
 			@currentViewParams = params
 
-			@trigger 'Action.Called'
+			# Trigger an event called Action.Called passing up the action
+			@trigger 'Action.Called', @currentView
+
+		# Seal the object
+		if Object.seal
+			Object.seal(Application)
+
+	Application
                             

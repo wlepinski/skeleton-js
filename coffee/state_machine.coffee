@@ -1,0 +1,5 @@
+define ->
+
+	StateMachine = {}
+
+	StateMachine

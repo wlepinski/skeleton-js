@@ -5,7 +5,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
   	Application Class
   */
   var Application;
-  return Application = (function() {
+  Application = (function() {
 
     Application.prototype.siteTitle = 'Application';
 
@@ -57,17 +57,22 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
     };
 
     Application.prototype.onControllerLoaded = function(controllerName, action, params, controllerClass) {
-      this.disposeCurrentController;
+      this.disposeCurrentController();
       this.initializeController(controllerName, params, controllerClass);
       return this.callControllerAction(action, params);
     };
 
     Application.prototype.disposeCurrentController = function() {
       if (this.currentController) {
-        if ((this.currentController.dispose != null) && _.isFunction(this.currentController.dispose)) {
-          throw new Error('Application#onControllerLoaded: A dispose method should be provided on ' + controllerName);
+        if (!((this.currentController.dispose != null) && _.isFunction(this.currentController.dispose))) {
+          throw new Error('Application#onControllerLoaded: A dispose method should be provided on ' + this.currentControllerName);
         }
-        return this.currentController.dispose();
+        this.currentController.dispose();
+        this.currentController = null;
+        this.currentControllerName = null;
+        this.currentView = null;
+        this.currentViewParams = null;
+        return this.currentParams = null;
       }
     };
 
@@ -87,16 +92,19 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
         throw new Error('You must have an active controller in order to call an specific action');
       }
       actionName = StringExt.camelize(action);
-      if (typeof this.currentController[action] !== 'function') {
-        throw new Error("ApplicationView#callControllerAction: We can't find a method called " + actionName + " on the controller " + this.currentController.id);
+      if (!_.isFunction(this.currentController[action])) {
+        throw new Error("Application#callControllerAction: We can't find a method called " + actionName + " on the controller " + this.currentController.id);
       }
       this.currentController[actionName](params);
       this.currentView = this.currentController.view;
       this.currentViewParams = params;
-      return this.trigger('Action.Called');
+      return this.trigger('Action.Called', this.currentView);
     };
+
+    if (Object.seal) Object.seal(Application);
 
     return Application;
 
   })();
+  return Application;
 });
