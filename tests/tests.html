@@ -3,10 +3,6 @@
 <head>
     <title>QUnit Test Suite</title>
     <link rel="stylesheet" href="qunit/qunit.css">
-    <script src="qunit/qunit.js"></script>
-    <script src="../libs/underscore-1.3.1.js"></script>
-    <script src="../libs/jquery-1.7.1.js"></script>
-    <script src="../libs/backbone-0.9.1.js"></script>
 </head>
 <body>
     <h1 id="qunit-header">QUnit Test Suite</h1>
@@ -14,8 +10,14 @@
     <div id="qunit-testrunner-toolbar"></div>
     <h2 id="qunit-userAgent"></h2>
     <ol id="qunit-tests">test markup, hidden.</ol>
+    <div id="repository"></div>
 
-    <!-- Libs -->
+    <script src="qunit/qunit.js"></script>
+    <script src="sinon-1.3.1.js"></script>
+    <script src="sinon-qunit-1.0.0.js"></script>
+    <script src="../libs/underscore-1.3.1.js"></script>
+    <script src="../libs/jquery-1.7.1.js"></script>
+    <script src="../libs/backbone-0.9.1.js"></script>
     <script src="../libs/require-1.0.5.js" data-main="tests.js"></script>
     <script>
         require.config({

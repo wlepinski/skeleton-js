@@ -1,6 +1,30 @@
-define ['subscriber', 'state_machine'], (Subscriber, StateMachine) ->
+define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine, StringEx) ->
 
 	'use strict'
+
+	###
+	Private Methods
+	###
+
+	#
+	# Wrap method with an before[methodName] and after[methodName]
+	wrapMethods = (methodNames) ->
+		instance = @
+		# Inner function that encapsulate the original method with after and before methods
+		wrapMethod = (methodName) ->
+			func = instance[methodName]
+			return instance[methodName] = ->
+				# Call the before[methodName] method
+				instance["before#{StringEx.upcase(methodName)}"].apply instance, arguments
+				# Call the original method
+				func.apply @, arguments
+				# Call after[methodName] method
+				instance["after#{StringEx.upcase(methodName)}"].apply instance, arguments
+				
+				return func
+		
+		# Use the inner function to wrap the method names passed as arguments
+		wrapMethod name for name in methodNames
 
 	###
 	View Class
@@ -14,33 +38,70 @@ define ['subscriber', 'state_machine'], (Subscriber, StateMachine) ->
 		#
 		# Public Properties
 		dispose: false
-
+		containerSelector: null
+		autoRender: false	
+		states : {}
+		transitions : {}
+		
 		#
 		# Constructor
-		constructor: (options) ->
-			#
-			# Private Properties
+		constructor: (options = {}) ->
 			@_registeredCollections = {}
 
-			options or= {}
+			# State machine required properties
+			@currentState = 'normal'
+
+			# Wrap render and initialize method with some before and after callbacks
+			wrapMethods.apply this, [['render', 'initialize']]
 
 			# Call super
 			super options
 
 		#
 		# Initialize method
-		initialize: (options) ->
+		initialize: (options={}) ->
 			# Call super
 			super options
+
+			if options and options.containerSelector?
+				if _.isString options.containerSelector
+					@containerSelector = $(options.containerSelector)
 
 			# Verify is the collections property is set on options object
 			if _.has(options, 'collections')
 				for name, collection of options.collections
 					@registerViewCollection name, collection
 
-			@initializeStateMachine()
+			# Initialize the state machine
+			@startStateMachine()
 
-		render: ->
+		#
+		# Render the view.
+		render: () ->
+			#console.log 'render'
+			if @containerSelector?
+				@containerSelector.empty().append(@$el)
+
+		beforeRender: () ->
+			#console.log 'beforeRender'
+
+		afterRender: () ->
+			#console.log 'afterRender'
+
+		beforeInitialize: (options) ->
+			#console.log 'beforeInitialize'
+
+		afterInitialize: (options) ->
+			#console.log 'afterInitialize'
+			# if we haven't a @containerSelector declared, skip
+			unless @containerSelector
+				return
+
+			# Render automatically if set by options or instance property
+			# and the option do not override it
+			byOption = options and options.autoRender is true
+			byDefault = @autoRender and not byOption
+			@render() if byOption or byDefault
 
 		#
 		# Return all registered collections
@@ -88,10 +149,6 @@ define ['subscriber', 'state_machine'], (Subscriber, StateMachine) ->
 				@unregisterViewCollection name
 
 		#
-		# Initialize the StateMachine
-		initializeStateMachine: ->
-
-		#
 		# Adds a new event to the related model
 		modelBind: (eventType, handlerFunc, model) ->
 			unless model?
@@ -109,6 +166,5 @@ define ['subscriber', 'state_machine'], (Subscriber, StateMachine) ->
 			@unsubscribeAllEvents()
 
 			@disposed = yes
-
-			
+	
 	View

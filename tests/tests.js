@@ -8,9 +8,10 @@ define(
 		'collections/foo_collection',
 		'controllers/test_controller',
 		'models/foo_model',
-		'views/foo_view'
+		'views/foo_view',
+		'views/state_view'
 	],
-	function(Application, Controller, EventBus, Subscriber, FooCollection, TestController, FooModel, FooView){
+	function(Application, Controller, EventBus, Subscriber, FooCollection, TestController, FooModel, FooView, StateView){
 
 		//
 		// Controller.js Module
@@ -22,7 +23,7 @@ define(
 			module('Application.js');
 
 			test( "Testing Application.js", function(){  
-				
+
 				expect(8);
 
 				raises(function(){
@@ -39,14 +40,12 @@ define(
 
 				app.on('Controller.Initialized', function(){
 					equal(app.currentControllerName, 'test' , 'currentControllerName on application should be test');
-					start();
 				});
 
 				app.on('Action.Called', function(){
 					notEqual(app.currentView, null, 'currentView should not be null');
 				})
 
-				stop();
 				app.initializeControllerAndAction('test', 'foo');
 				
 			});
@@ -64,10 +63,8 @@ define(
 					equal(app.currentView, null, "After disposal, currentView should be null");
 					equal(app.currentParams, null, "After disposal, currentParams should be null");
 					equal(app.currentViewParams, null, "After disposal, currentViewParams should be null");
-					start();
 				});
 
-				stop();
 				app.initializeControllerAndAction('test', 'foo');
 
 			});
@@ -172,6 +169,36 @@ define(
 				equal(view.getRegisteredCollection('nonExistingCollection'), null, "Should return null for a non existing collection");
 			});
 
+			test( "Testing view render", function(){
+				
+				expect(4);
+				
+				var view = new FooView();
+				var beforeRenderStub = sinon.stub(view, "beforeRender");
+				var afterRenderStub = sinon.stub(view, "afterRender");
+
+				view.render({ foo: 'bar' });
+
+				ok(beforeRenderStub.called, 'BeforeRender should be called');
+				ok(beforeRenderStub.calledWith({ foo: 'bar' }), 'BeforeRender should be called with the same arguments as render method');
+				
+				ok(afterRenderStub.called, 'AfterRender should be called');
+				ok(beforeRenderStub.calledWith({ foo: 'bar' }), 'AfterRender should be called with the same arguments as render method');
+			});
+
+			test( "Testing autoRender feature", function(){
+				
+				expect(2);
+				
+				var view = new FooView({
+					containerSelector : '#repository',
+					autoRender : true
+				});
+				
+				deepEqual(view.containerSelector, $('#repository'), 'containerSelector should be a jquery object targeting #content');
+				equal($('#repository div.fooView').length, 1, 'FooView should be renderized inside #repository');
+			});
+
 			test( "Testing view collections disposal", function(){  
 				
 				expect(2);
@@ -216,6 +243,60 @@ define(
 				view.dispose();
 				equal(view.globalSubscriptions, null, "No more events on globalSubscriptions");
 			});
+
+			test( "Testing state machine integration", function(){
+
+				expect(7);
+
+				var view = new StateView();
+				equal(view.currentState, 'normal', 'Initial state of a view should be normal');
+
+				ok('normal' in view._states, 'StateView should have normal state');
+				ok('foo' in view._states, 'StateView should have foo state');
+				equal( _(view._states).keys().length, 2, 'StateView should contain 2 states');
+
+				ok('normal' in view._transitions, 'StateView should have normal transition');
+				ok('foo' in view._transitions, 'StateView should have foo transition');
+				equal( _(view._transitions).keys().length, 2, 'StateView should contain 2 transitions');
+
+			});
+
+			test( "Testing state machine transitions events", function(){
+				expect(14);
+
+				var view = new StateView();
+				var spy = this.spy();
+				var transitionSpy = this.spy();
+
+				view.bind('leaveState:normal', spy);
+				view.bind('enterState:foo', spy);
+				view.bind('leaveState:foo', spy);
+				view.bind('enterState:normal', spy);
+				view.bind('transition', transitionSpy);
+				
+				view.transitTo('toFoo');
+				ok(transitionSpy.calledOnce, 'TransitionSpy should be called');
+				ok(transitionSpy.getCall(0).calledWith('normal', 'foo'), 'TransitionSpy should be called with "normal" and "foo" arguments');
+				equal(spy.callCount, 2, 'The transition to foo should trigger "leaveState:normal", "enterState:foo" and "transition" events');
+				equal(view.currentState, 'foo', 'Transitioned state should be foo');
+
+				view.transitTo('toFoo');
+				ok(transitionSpy.calledOnce);
+				equal(spy.callCount, 2, 'Same transition should not trigger events');
+				equal(view.currentState, 'foo', 'If the transition dont exist we should stay on the same current state');
+
+				view.transitTo('toNormal');
+				ok(transitionSpy.calledTwice, 'TransitionSpy should be called twice at this point');
+				ok(transitionSpy.getCall(1).calledWith('foo', 'normal'), 'TransitionSpy should be called with "foo" and "normal" arguments');
+				equal(spy.callCount, 4, 'The transition to normal should trigger "leaveState:normal", "enterState:foo" and "transition" events');
+				equal(view.currentState, 'normal', 'Transitioned state should be normal');
+
+				// Silent verification
+				view.transitTo('toFoo', true);
+				ok(transitionSpy.calledTwice, 'TransitionSpy should be called twice at this point');
+				equal(spy.callCount, 4, 'Spy call count should stay at 4 while silent is activated');
+				equal(view.currentState, 'foo', 'Transitioned state should be "foo"');				
+			})
 		
 		})();
 

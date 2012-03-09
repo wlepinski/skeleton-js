@@ -7,6 +7,8 @@ define(['view'], function(View) {
 
     __extends(FooView, _super);
 
+    FooView.prototype.className = 'fooView';
+
     function FooView(options) {
       FooView.__super__.constructor.call(this, options);
     }

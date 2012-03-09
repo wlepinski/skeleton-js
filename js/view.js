@@ -1,12 +1,35 @@
 var __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
-define(['subscriber', 'state_machine'], function(Subscriber, StateMachine) {
+define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, StateMachine, StringEx) {
   'use strict';
+  /*
+  	Private Methods
+  */
+  var View, wrapMethods;
+  wrapMethods = function(methodNames) {
+    var instance, name, wrapMethod, _i, _len, _results;
+    instance = this;
+    wrapMethod = function(methodName) {
+      var func;
+      func = instance[methodName];
+      return instance[methodName] = function() {
+        instance["before" + (StringEx.upcase(methodName))].apply(instance, arguments);
+        func.apply(this, arguments);
+        instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
+        return func;
+      };
+    };
+    _results = [];
+    for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
+      name = methodNames[_i];
+      _results.push(wrapMethod(name));
+    }
+    return _results;
+  };
   /*
   	View Class
   */
-  var View;
   View = (function(_super) {
 
     __extends(View, _super);
@@ -17,15 +40,31 @@ define(['subscriber', 'state_machine'], function(Subscriber, StateMachine) {
 
     View.prototype.dispose = false;
 
+    View.prototype.containerSelector = null;
+
+    View.prototype.autoRender = false;
+
+    View.prototype.states = {};
+
+    View.prototype.transitions = {};
+
     function View(options) {
+      if (options == null) options = {};
       this._registeredCollections = {};
-      options || (options = {});
+      this.currentState = 'normal';
+      wrapMethods.apply(this, [['render', 'initialize']]);
       View.__super__.constructor.call(this, options);
     }
 
     View.prototype.initialize = function(options) {
       var collection, name, _ref;
+      if (options == null) options = {};
       View.__super__.initialize.call(this, options);
+      if (options && (options.containerSelector != null)) {
+        if (_.isString(options.containerSelector)) {
+          this.containerSelector = $(options.containerSelector);
+        }
+      }
       if (_.has(options, 'collections')) {
         _ref = options.collections;
         for (name in _ref) {
@@ -33,10 +72,28 @@ define(['subscriber', 'state_machine'], function(Subscriber, StateMachine) {
           this.registerViewCollection(name, collection);
         }
       }
-      return this.initializeStateMachine();
+      return this.startStateMachine();
     };
 
-    View.prototype.render = function() {};
+    View.prototype.render = function() {
+      if (this.containerSelector != null) {
+        return this.containerSelector.empty().append(this.$el);
+      }
+    };
+
+    View.prototype.beforeRender = function() {};
+
+    View.prototype.afterRender = function() {};
+
+    View.prototype.beforeInitialize = function(options) {};
+
+    View.prototype.afterInitialize = function(options) {
+      var byDefault, byOption;
+      if (!this.containerSelector) return;
+      byOption = options && options.autoRender === true;
+      byDefault = this.autoRender && !byOption;
+      if (byOption || byDefault) return this.render();
+    };
 
     View.prototype.getRegisteredCollections = function() {
       return _.values(this._registeredCollections);
@@ -75,8 +132,6 @@ define(['subscriber', 'state_machine'], function(Subscriber, StateMachine) {
       }
       return _results;
     };
-
-    View.prototype.initializeStateMachine = function() {};
 
     View.prototype.modelBind = function(eventType, handlerFunc, model) {
       if (model == null) return model = this.model || this.collection;
