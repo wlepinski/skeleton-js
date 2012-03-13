@@ -15,11 +15,25 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 			func = instance[methodName]
 			return instance[methodName] = ->
 				# Call the before[methodName] method
-				instance["before#{StringEx.upcase(methodName)}"].apply instance, arguments
-				# Call the original method
-				func.apply @, arguments
-				# Call after[methodName] method
-				instance["after#{StringEx.upcase(methodName)}"].apply instance, arguments
+				beforeRet = instance["before#{StringEx.upcase(methodName)}"].apply instance, arguments
+
+				# Here we verify if the object returned has the method done, if so, we'r talking about a 
+				# object implementing the deferred object of jQuery. What we need here is defer the execution
+				# of the executing of the method and their after[method] counterpart right after the deferred 
+				# object is resolved.
+				if beforeRet? and _.has beforeRet, 'done'
+					# Wait until the deferred is resolved
+					beforeRet.done () =>
+						# Call the original method
+						func.apply instance, arguments
+						# Call after[methodName] method
+						instance["after#{StringEx.upcase(methodName)}"].apply instance, arguments
+				# if the object doesnt return anything, just call the methods
+				else
+					# Call the original method
+					func.apply @, arguments
+					# Call after[methodName] method
+					instance["after#{StringEx.upcase(methodName)}"].apply instance, arguments
 				
 				return func
 		
@@ -40,8 +54,9 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 		dispose: false
 		containerSelector: null
 		autoRender: false	
-		states : {}
-		transitions : {}
+		states: {}
+		transitions: {}
+		subscriptions: {}
 		
 		#
 		# Constructor
@@ -63,6 +78,39 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 			# Call super
 			super options
 
+		#
+		# Render the view.
+		render: () ->
+			#console.log 'render'
+
+		#
+		# This method is called before the method render.
+		beforeRender: () ->
+			#console.log 'beforeRender'
+			calls = []
+
+			for collection in @getRegisteredCollections()
+				calls.push collection.fetch()
+
+			return $.when.apply(@, calls)
+
+		#
+		# This method is called after the method render.
+		afterRender: () ->
+			#console.log 'afterRender'
+			if @containerSelector?
+				@containerSelector.empty().append(@$el)
+
+		#
+		# This method is called before the method initialize.
+		beforeInitialize: (options) ->
+			#console.log 'beforeInitialize'
+			for subscription, method of @subscriptions
+				unless _.isFunction @[method]
+					throw new Error("The method #{method} does not exist #{@cid}")
+				@subscribeEvent subscription, @[method]
+
+			# Verify if the have a option called containerSelector and, if so, find the DOM object
 			if options and options.containerSelector?
 				if _.isString options.containerSelector
 					@containerSelector = $(options.containerSelector)
@@ -72,27 +120,14 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 				for name, collection of options.collections
 					@registerViewCollection name, collection
 
+		#
+		# This method is called after the method initialize.
+		afterInitialize: (options) ->
+			#console.log 'afterInitialize'
+			
 			# Initialize the state machine
 			@startStateMachine()
 
-		#
-		# Render the view.
-		render: () ->
-			#console.log 'render'
-			if @containerSelector?
-				@containerSelector.empty().append(@$el)
-
-		beforeRender: () ->
-			#console.log 'beforeRender'
-
-		afterRender: () ->
-			#console.log 'afterRender'
-
-		beforeInitialize: (options) ->
-			#console.log 'beforeInitialize'
-
-		afterInitialize: (options) ->
-			#console.log 'afterInitialize'
 			# if we haven't a @containerSelector declared, skip
 			unless @containerSelector
 				return
@@ -106,7 +141,7 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 		#
 		# Return all registered collections
 		getRegisteredCollections: ->
-			return _.values( @_registeredCollections );
+			return _( @_registeredCollections ).values();
 		
 		#
 		# Return a collection by it's name
