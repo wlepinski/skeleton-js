@@ -9,9 +9,17 @@ define(['view'], function(View) {
 
     FooView.prototype.className = 'fooView';
 
+    FooView.prototype.subscriptions = {
+      loginEvent: 'onLogin'
+    };
+
     function FooView(options) {
       FooView.__super__.constructor.call(this, options);
     }
+
+    FooView.prototype.onLogin = function(event) {
+      return console.log(event);
+    };
 
     return FooView;
 

@@ -11,6 +11,10 @@ define(['controller'], function(Controller) {
       TestController.__super__.constructor.call(this, 'test_controller');
     }
 
+    TestController.prototype.index = function() {
+      return this.view = 'index';
+    };
+
     TestController.prototype.foo = function() {
       return this.view = 'hello';
     };

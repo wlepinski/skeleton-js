@@ -4,6 +4,8 @@ define(
 		'controller',
 		'eventbus',
 		'subscriber',
+		'router',
+		'route',
 
 		'collections/foo_collection',
 		'controllers/test_controller',
@@ -11,7 +13,7 @@ define(
 		'views/foo_view',
 		'views/state_view'
 	],
-	function(Application, Controller, EventBus, Subscriber, FooCollection, TestController, FooModel, FooView, StateView){
+	function(Application, Controller, EventBus, Subscriber, Router, Route, FooCollection, TestController, FooModel, FooView, StateView){
 
 		//
 		// Controller.js Module
@@ -40,10 +42,12 @@ define(
 
 				app.on('Controller.Initialized', function(){
 					equal(app.currentControllerName, 'test' , 'currentControllerName on application should be test');
+					app.off('Controller.Initialized');
 				});
 
 				app.on('Action.Called', function(){
 					notEqual(app.currentView, null, 'currentView should not be null');
+					app.off('Action.Called')
 				})
 
 				app.initializeControllerAndAction('test', 'foo');
@@ -63,6 +67,7 @@ define(
 					equal(app.currentView, null, "After disposal, currentView should be null");
 					equal(app.currentParams, null, "After disposal, currentParams should be null");
 					equal(app.currentViewParams, null, "After disposal, currentViewParams should be null");
+					app.off('Action.Called');
 				});
 
 				app.initializeControllerAndAction('test', 'foo');
@@ -167,6 +172,8 @@ define(
 				equal(view.getRegisteredCollections().length, 1, "View should have 1 registered collection");
 				equal(view.getRegisteredCollection('fooCollection'), fooCollection, "Collection should be strict equal");
 				equal(view.getRegisteredCollection('nonExistingCollection'), null, "Should return null for a non existing collection");
+
+				view.render();
 			});
 
 			test( "Testing view render", function(){
@@ -215,7 +222,7 @@ define(
 						'fooCollection3' : fooCollection3
 					}
 				});
-				
+
 				equal(view2.getRegisteredCollections().length, 3, "View should have 3 registered collection");
 				view2.dispose();
 				equal(view2.getRegisteredCollections().length, 0, "View should have no collections registered");
@@ -307,6 +314,133 @@ define(
 		(function(){
 			
 			module('Collection.js');
+
+		})();
+
+		//
+		// Router.js Module
+		//
+		//
+		(function(){
+			
+			module('Router.js');
+
+			test('Initialization', function() {
+
+				expect(4);
+				
+				var spy = this.spy();
+				var appRouter = new Router();
+				appRouter.routes = {
+					'' : 'test#index',
+					'foo' : 'test#foo',
+					'foo/:id/view' : {
+						target: 'test#view',
+						constraints : {
+							id: /^\d+$/
+						},
+						params: {
+							foo : 'bar'
+						}
+					}
+				}				
+
+				// Include another rulu using the match method
+				appRouter.match('bar', 'bar', 'index');
+				
+				EventBus.on('Route.Matched', spy);
+				appRouter.start();
+
+				ok(spy.calledOnce);
+				
+				raises(function(){
+					Backbone.history.start();
+				}, 'Should dispatch an exception because the Router already started the Backbone.history')
+
+				equal(Backbone.history.handlers.length, 4, 'Backbone.history.handlers.length should have 3 handlers created');
+
+				appRouter.route('foo/1/view');
+
+				ok(spy.calledTwice);
+				
+			});
+
+		})();
+
+		//
+		// Route.js Module
+		//
+		//
+		(function(){
+			
+			module('Route.js');
+
+			test('Named params', function() {
+
+				expect(1);
+
+				var route = new Route('pattern/:id/:name', 'site', 'index', {
+					id: /^\d+$/,
+					name: /^\w{4}$/
+				});
+
+				equal(route.paramNames.length, 2, 'Route must contain 2 named params');
+			});
+
+			test('Test match', function() {
+
+				expect(2);
+
+				var route = new Route('pattern/:id/:name', 'site', 'index', {
+					id: /^\d+$/,
+					name: /^\w{4}$/
+				});
+
+				equal(route.test('pattern/1/ABCD'), true, 'Should return true for a valid pattern');
+				equal(route.test('pattern/a/ABCD'), false, 'Should return false due to constraints definition')
+			});
+
+			test('Parameter extraction', function() {
+
+				expect(1);
+
+				var route = new Route('pattern/:id/:name', 'site', 'index', {
+					id: /^\d+$/,
+					name: /^\w{4}$/
+				});
+				
+				deepEqual(route.extractParams('pattern/1/ABCD'), { id : '1', name:'ABCD' })
+			});
+
+			test('Event trigger', function() {
+
+				expect(1);
+
+				var spy = this.spy();
+				var route = new Route('foo/:id/:name', 'test', 'index', 
+					{
+						id: /^\d+$/,
+						name: /^\w{4}$/
+					},
+					{
+						foo: 'foo',
+						baz: 'baz'
+					}
+				);
+
+				EventBus.on('Route.Matched', spy);
+
+				route.handler('foo/1/will');
+
+				deepEqual(spy.args[0][1], { 
+					changeURL: false, 
+					foo : 'foo',
+					baz : 'baz',
+					id : '1',
+					name : 'will',
+					path : "foo/1/will"
+				});
+			});
 
 		})();
 

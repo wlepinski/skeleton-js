@@ -11,6 +11,8 @@ define(['collection'], function(Collection) {
       FooCollection.__super__.constructor.apply(this, arguments);
     }
 
+    FooCollection.prototype.url = 'foo.xml';
+
     return FooCollection;
 
   })(Collection);
