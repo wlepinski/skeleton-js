@@ -1,7 +1,7 @@
 var __hasProp = Object.prototype.hasOwnProperty,
   __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
-define(function() {
+define(['subscriber'], function(Subscriber) {
   'use strict';
   /*
   	Collection Class
@@ -10,6 +10,8 @@ define(function() {
   Collection = (function(_super) {
 
     __extends(Collection, _super);
+
+    _(Collection.prototype).defaults(Subscriber);
 
     Collection.prototype.disposed = false;
 
@@ -20,7 +22,11 @@ define(function() {
 
     Collection.prototype.initialize = function() {};
 
-    Collection.prototype.dispose = function() {};
+    Collection.prototype.dispose = function() {
+      this.trigger('dispose', this);
+      this.unsubscribeAllEvents();
+      return this.disposed = true;
+    };
 
     return Collection;
 

@@ -14,9 +14,18 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
       var func;
       func = instance[methodName];
       return instance[methodName] = function() {
-        instance["before" + (StringEx.upcase(methodName))].apply(instance, arguments);
-        func.apply(this, arguments);
-        instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
+        var beforeRet,
+          _this = this;
+        beforeRet = instance["before" + (StringEx.upcase(methodName))].apply(instance, arguments);
+        if ((beforeRet != null) && _.has(beforeRet, 'done')) {
+          beforeRet.done(function() {
+            func.apply(instance, arguments);
+            return instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
+          });
+        } else {
+          func.apply(this, arguments);
+          instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
+        }
         return func;
       };
     };
@@ -48,6 +57,8 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
 
     View.prototype.transitions = {};
 
+    View.prototype.subscriptions = {};
+
     function View(options) {
       if (options == null) options = {};
       this._registeredCollections = {};
@@ -57,38 +68,58 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
     }
 
     View.prototype.initialize = function(options) {
-      var collection, name, _ref;
       if (options == null) options = {};
-      View.__super__.initialize.call(this, options);
+      return View.__super__.initialize.call(this, options);
+    };
+
+    View.prototype.render = function() {};
+
+    View.prototype.beforeRender = function() {
+      var calls, collection, _i, _len, _ref;
+      calls = [];
+      _ref = this.getRegisteredCollections();
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        collection = _ref[_i];
+        calls.push(collection.fetch());
+      }
+      return $.when.apply(this, calls);
+    };
+
+    View.prototype.afterRender = function() {
+      if (this.containerSelector != null) {
+        return this.containerSelector.empty().append(this.$el);
+      }
+    };
+
+    View.prototype.beforeInitialize = function(options) {
+      var collection, method, name, subscription, _ref, _ref2, _results;
+      _ref = this.subscriptions;
+      for (subscription in _ref) {
+        method = _ref[subscription];
+        if (!_.isFunction(this[method])) {
+          throw new Error("The method " + method + " does not exist " + this.cid);
+        }
+        this.subscribeEvent(subscription, this[method]);
+      }
       if (options && (options.containerSelector != null)) {
         if (_.isString(options.containerSelector)) {
           this.containerSelector = $(options.containerSelector);
         }
       }
       if (_.has(options, 'collections')) {
-        _ref = options.collections;
-        for (name in _ref) {
-          collection = _ref[name];
-          this.registerViewCollection(name, collection);
+        _ref2 = options.collections;
+        _results = [];
+        for (name in _ref2) {
+          collection = _ref2[name];
+          _results.push(this.registerViewCollection(name, collection));
         }
-      }
-      return this.startStateMachine();
-    };
-
-    View.prototype.render = function() {
-      if (this.containerSelector != null) {
-        return this.containerSelector.empty().append(this.$el);
+        return _results;
       }
     };
-
-    View.prototype.beforeRender = function() {};
-
-    View.prototype.afterRender = function() {};
-
-    View.prototype.beforeInitialize = function(options) {};
 
     View.prototype.afterInitialize = function(options) {
       var byDefault, byOption;
+      this.startStateMachine();
       if (!this.containerSelector) return;
       byOption = options && options.autoRender === true;
       byDefault = this.autoRender && !byOption;
@@ -96,7 +127,7 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
     };
 
     View.prototype.getRegisteredCollections = function() {
-      return _.values(this._registeredCollections);
+      return _(this._registeredCollections).values();
     };
 
     View.prototype.getRegisteredCollection = function(name) {

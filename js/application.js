@@ -1,11 +1,18 @@
 
 define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
   'use strict';
+  var Application, onControllerLoaded;
+  onControllerLoaded = function(controllerName, action, params, controllerClass) {
+    this.disposeCurrentController();
+    this.initializeController(controllerName, params, controllerClass);
+    return this.callControllerAction(action, params);
+  };
   /*
   	Application Class
   */
-  var Application;
   Application = (function() {
+
+    _(Application.prototype).defaults(Backbone.Events);
 
     Application.prototype.siteTitle = 'Application';
 
@@ -29,8 +36,6 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
       return;
     }
 
-    _(Application.prototype).defaults(Backbone.Events);
-
     Application.prototype.initializeEvents = function() {
       var _this = this;
       return EventBus.subscribe('Route.Matched', function(route, params) {
@@ -44,7 +49,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
     Application.prototype.initializeControllers = function() {};
 
     Application.prototype.initializeControllerAndAction = function(controllerName, action, params) {
-      var controllerFileName, isSameAction, isSameController;
+      var callback, controllerFileName, isSameAction, isSameController;
       if (action == null) action = 'index';
       if (params == null) params = {};
       isSameController = this.currentControllerName === controllerName;
@@ -52,14 +57,9 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
         return isSameAction = this.currentAction === action && ((this.currentParams != null) || this.currentParams);
       } else {
         controllerFileName = StringExt.underscorize(controllerName + '_controller');
-        return require(['controllers/' + controllerFileName], _(this.onControllerLoaded).bind(this, controllerName, action, params));
+        callback = _.bind(onControllerLoaded, this);
+        return require(['controllers/' + controllerFileName], _(callback).bind(this, controllerName, action, params));
       }
-    };
-
-    Application.prototype.onControllerLoaded = function(controllerName, action, params, controllerClass) {
-      this.disposeCurrentController();
-      this.initializeController(controllerName, params, controllerClass);
-      return this.callControllerAction(action, params);
     };
 
     Application.prototype.disposeCurrentController = function() {
@@ -83,7 +83,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
       this.previousController = this.currentControllerName;
       this.currentControllerName = controllerName;
       this.currentController = controller;
-      return this.trigger('Controller.Initialized');
+      return this.trigger('Controller.Initialized', controller);
     };
 
     Application.prototype.callControllerAction = function(action, params) {
@@ -100,8 +100,6 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
       this.currentViewParams = params;
       return this.trigger('Action.Called', this.currentView);
     };
-
-    if (Object.seal) Object.seal(Application);
 
     return Application;
 
