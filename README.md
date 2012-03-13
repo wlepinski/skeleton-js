@@ -1,6 +1,6 @@
 ![SkeletonJS](http://wlepinski.blog.br/skeleton-js/skeleton-js-logo.png)
 
-# An Application Architecture Using Backbone, RequireJS
+# An Application Architecture Using Backbone, RequireJS, CoffeScript and QUnit
 
 ## Introduction
 
