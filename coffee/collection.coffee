@@ -16,7 +16,7 @@ define ['subscriber'], (Subscriber) ->
 
 		#
 		# Constructor
-		constructor: ->
+		constructor: (@name) ->
 			#console.log "Collection#constructor"
 			super
 

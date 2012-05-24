@@ -23,6 +23,13 @@ define(['application', 'route'], function(Application, Route) {
       this._router = null;
     }
 
+    Router.prototype.changeUrl = function(url) {
+      if (Backbone.history == null) return;
+      return Backbone.history.navigate(url, {
+        trigger: true
+      });
+    };
+
     Router.prototype.bindRoutes = function() {
       var action, config, controller, controllerAction, controllerActionArr, defaultConfigs, pattern, _ref, _results;
       defaultConfigs = {

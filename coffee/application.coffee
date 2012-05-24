@@ -14,11 +14,11 @@ define [
 	# and trigger the specified action.
 	onControllerLoaded = (controllerName, action, params, controllerClass) ->
 		# Dispose the current controller
-		@disposeCurrentController()
-		# Initialize the controller loaded
-		@initializeController controllerName, params, controllerClass
-		# Call the specified action on the controller
-		@callControllerAction action, params
+		@disposeCurrentController().done =>
+			# Initialize the controller loaded
+			@initializeController controllerName, params, controllerClass
+			# Call the specified action on the controller
+			@callControllerAction action, params
 
 	## Application class
 
@@ -44,30 +44,42 @@ define [
 
 		#### Constructor
 		constructor: (@name) ->
-			console.log "Application#constructor: #{@name}"
+			# console.log "Application#constructor: #{@name}"
 
 			if !@name?
 				throw new Error 'Every application must have a name'
 
-			@initializeControllers()
+			window.Application =
+				Collections 	: {}
+				Models 			: {}
+				Views 			: {}
+
+			@initialize()
 			@initializeEvents()
 
 			return
 
 		#### Subscribe to relevant events on the EventBus.
 		initializeEvents: () ->
-			console.log "Application#initializeEvents"
+			# console.log "Application#initializeEvents"
 
 			# Subscribe to the event Route.Matched, so we are able to instanciate a new controler and action
 			EventBus.subscribe 'Route.Matched', (route, params) =>
 				controllerName = route.controller
 				action = route.action
 
-				# Initialize the controller and action for the matched route
-				@initializeControllerAndAction(controllerName, action, params)
+				if @loadingPromise?
+					@loadingPromise.done =>
+						# Initialize the controller and action for the matched route
+						@initializeControllerAndAction(controllerName, action, params)
+				else
+					# Initialize the controller and action for the matched route
+					@initializeControllerAndAction(controllerName, action, params)
+
+
 
 		#### Initialize controllers
-		initializeControllers: () ->
+		initialize: () ->
 			# This method is a extension point for custom implementations on sub-classes
 
 		#### Initializes a controller and a action.
@@ -76,7 +88,10 @@ define [
 		# @param action The action to be loaded. Defaults to index
 		# @param params The params to be used while instantiating the action
 		initializeControllerAndAction: (controllerName, action = 'index', params = {}) ->
-			console.log "Application#initializeControllerAndAction", controllerName, action, params
+			# console.log "Application#initializeControllerAndAction", controllerName, action, params
+			@loadingPromise = $.Deferred()
+
+			# Is the same controller?
 			isSameController = @currentControllerName is controllerName
 
 			# Well, if we're talking about the same action we need to check if we are trying to enter
@@ -85,10 +100,9 @@ define [
 				isSameAction = @currentAction is action and (@currentParams? or @currentParams)
 
 				# Dispose current action
-				@disposeCurrentAction()
-
-				# Call the new controller unless the action is not the same
-				@callControllerAction action, params unless isSameAction
+				@disposeCurrentAction().done () =>
+					# Call the new controller unless the action is not the same
+					@callControllerAction action, params unless isSameAction
 			else
 				controllerFileName = StringExt.underscorize controllerName + '_controller'
 
@@ -100,25 +114,48 @@ define [
 		#
 		# Disposes the actual controller loaded
 		disposeCurrentController: () ->
-			console.log "Application#disposeCurrentController"
+			defObj = $.Deferred()
+
+			# console.log "Application#disposeCurrentController"
 			if @currentController
-				console.log "Application#disposeCurrentController -> #{@currentController}"
+				# console.log "Application#disposeCurrentController -> Disposing #{@currentController.id} controller"
 				unless @currentController.dispose? and _.isFunction @currentController.dispose
 					throw new Error "Application#onControllerLoaded: A dispose method should be provided on #{@currentControllerName}"
 
-				@currentController.dispose()
+				@disposeCurrentAction().done =>
+					# Dispose the current controller
+					@currentController.dispose()
+					# Clean up the fields
+					@currentController = null
+					@currentControllerName = null
+					# Resolve the deferred object
+					do defObj.resolve
+			else
+				# Resolve the deferred object
+				do defObj.resolve
 
-				# Clean up the fields
-				@currentController = null
-				@currentControllerName = null
+			return defObj
 
-				@disposeCurrentAction()
-
+		#
+		# Dispose the current viewed action
 		disposeCurrentAction: () ->
-			@currentView.dispose()
-			@currentView = null
-			@currentViewParams = null
-			@currentParams = null
+			defObj = $.Deferred();
+
+			if @currentView
+				# FadeOut the @currentView.el
+				@currentView.$el.fadeOut 200, =>
+					# Dispose the current view
+					@currentView.dispose()
+					@currentView = null
+					@currentViewParams = null
+					@currentParams = null
+					# Resolve the deferred object
+					do defObj.resolve
+			else
+				# If no view, resolve the deferred object
+				do defObj.resolve
+
+			return defObj
 
 		#
 		# Instanciate a new controller and cache the properties.
@@ -158,13 +195,49 @@ define [
 				throw new Error "We can't find a method called '#{actionName}' on the controller with id '#{@currentController.id}'"
 
 			# Call the action passing the parameters
-			@currentController[actionName] params
+			@viewDeferred = @currentController[actionName] params
 
-			# Sets the current view and current parameters
-			@currentView = @currentController.view
+			# Set the current view params
 			@currentViewParams = params
 
-			# Trigger an event called Action.Called passing up the action
-			@trigger 'Action.Called', @currentView
+			loadingTimer = setTimeout(->
+				$('body').addClass('loading')
+			, 1000)
+
+			# Returned a deferred or promise?
+			# Since the Deferred Object is just a Object, we need to check against some properties
+			if @viewDeferred && _(@viewDeferred).has('state')
+				@viewDeferred.done (viewInstance) =>
+
+					# Clear the timeout
+					clearTimeout loadingTimer
+
+					# Remove loading class
+					$('body').removeClass('loading')
+
+					# Assign the view instance
+					@currentView = viewInstance
+
+					# Trigger an event called Action.Called passing up the action
+					@trigger 'Action.Called', @currentView
+
+					@viewDeferred = null
+
+					do @loadingPromise.resolve
+
+					# We set to null the loading promise only if there's no view pending to be resolved
+					@loadingPromise = null if @loadingPromise.state() == 'resolved'
+
+
+			# Ok, no deferred found, the developer sent a plain view?
+			else if @currentController.view?
+				# Sets the current view and current parameters
+				@currentView = @currentController.view
+				# Trigger an event called Action.Called passing up the action
+				@trigger 'Action.Called', @currentView
+
+			# Well, we unfortunelly have an error :(
+			else
+				throw new Error "The controller action #{actionName} of the #{@currentController.id} isn't returning a view."
 
 	Application

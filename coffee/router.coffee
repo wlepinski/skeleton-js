@@ -26,6 +26,10 @@ define ['application', 'route'], (Application, Route) ->
 			@_createdRoutes = []
 			@_router = null
 
+		changeUrl: (url) ->
+			return unless Backbone.history?
+			Backbone.history.navigate url, {trigger:true}
+
 		#
 		# Bind the routes created throught the routes object into separated Route objects
 		bindRoutes: ->
@@ -65,7 +69,7 @@ define ['application', 'route'], (Application, Route) ->
 			if @_createdRoutes.length == 0
 				throw new Error 'Router#start: Could you please provide at least 1 route for me?'
 
-			# Because hash-based history in Internet Explorer relies on an iframe, 
+			# Because hash-based history in Internet Explorer relies on an iframe,
 			# be sure to only call start() after the DOM is ready.
 			Backbone.history.start({ pushState: @enablePushState })
 
@@ -74,7 +78,7 @@ define ['application', 'route'], (Application, Route) ->
 		#
 		# Create a route.
 		#
-		# @param pattern 
+		# @param pattern
 		# @param controller
 		# @param action
 		# @param constraints
@@ -98,7 +102,7 @@ define ['application', 'route'], (Application, Route) ->
 		route: (path) ->
 			# Remove leading hash or slash
 			path = path.replace /^(\/#|\/)/, ''
-			
+
 			for handler in Backbone.history.handlers
 				if handler.route.test(path)
 					handler.callback path, changeURL: true

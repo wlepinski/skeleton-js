@@ -9,7 +9,7 @@ define ->
 
 		id: undefined
 		disposed: no
-		
+
 		currentView: null
 
 		_registeredCollections: {},
@@ -28,11 +28,29 @@ define ->
 		initialize: ->
 
 		#
+		# RenderView method
+		renderView: (viewName, viewOptions = {}) ->
+			viewFile = "views/#{@id}/#{viewName}_view"
+			templateFile = "plugins/text!/templates/#{@id}/#{viewName}.html"
+			loadDef = $.Deferred()
+
+			require [viewFile, templateFile], (ViewClass, viewTemplate) ->
+				_.extend viewOptions,
+					template : viewTemplate
+
+				viewInstance = new ViewClass(viewOptions)
+
+				# Resolve the jQuery Deferred object passing the view instance and the template loaded
+				loadDef.resolve viewInstance, viewTemplate
+
+			return loadDef
+
+		#
 		# registerModel method
 		registerModel: (name, model) ->
 			unless _.has(@_registeredModels, name)
 				@_registeredModels[name] = model
-				
+
 		#
 		# Get a model registered by name
 		#
@@ -41,7 +59,7 @@ define ->
 		getModel: (name) ->
 			unless _.has( @_registeredModels, name )
 				throw new Error("The model with name #{ name } is not registered on the controller #{ @id }")
-			
+
 			return @_registeredModels[name]
 
 		#
@@ -64,7 +82,7 @@ define ->
 		getCollection: (name) ->
 			unless _.has( @_registeredCollections, name )
 				throw new Error("The collection with name #{ name } is not registered on the controller #{ @id }")
-			
+
 			return @_registeredCollections[name]
 
 		#
@@ -90,6 +108,6 @@ define ->
 				collection.dispose()
 				delete @_registeredCollections[name]
 
-			@disposed = yes		
+			@disposed = yes
 
 	Controller

@@ -6,6 +6,15 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 	Private Methods
 	###
 
+	#
+	#
+	beforeRender = () ->
+
+	#
+	# This method is executed right after a view was rendered.
+	afterRender = () ->
+		@appendToContainer()
+
 	###
 	View Class
 	###
@@ -17,9 +26,10 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 
 		#
 		# Public Properties
-		containerSelector	: null
-		autoRender			: false
+		containerSelector	: '#content'
+		autoRender			: true
 		states				: {}
+		template			: null
 		transitions			: {}
 		subscriptions		: {}
 		disposed			: no
@@ -34,8 +44,34 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 			# State machine required properties
 			@currentState = 'normal'
 
+			# Locate the containerSelector on the DOM
+			@$containerSelector = $(@containerSelector)
+
+			# Here we need to wrap the render method to dispatch some events and
+			# execute the beforeRender and afterRender private methods
+			@render = _.wrap @render, (renderFunc) =>
+				@trigger('before:render');
+				beforeRender.apply @
+
+				ret = renderFunc.apply @
+
+				@trigger('after:render');
+				afterRender.apply @
+
+				return ret
+
 			# Call super
 			super options
+
+		#
+		# Append the view.el automatically to the container of this view.
+		appendToContainer: () ->
+			# Here we need to check wheather the container already have our view.el inserted
+			# to avoid the fadeIn effect being execute twice
+			if @$containerSelector.has(@el).length == 0
+				do @$el.hide
+				@$containerSelector.append(@el)
+				@$el.fadeIn 200
 
 		#
 		# Delegate
@@ -62,6 +98,9 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 			# console.log "View#initialize", this, options
 			# Call super
 			super options
+
+			if options.template? and @template == null
+				@template = Handlebars.compile(options.template)
 
 		#
 		# Create a new bind on the model/collection
