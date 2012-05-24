@@ -1,0 +1,104 @@
+/*	IMAGE REPLACEMENT
+	----------------------------------- */
+
+	.ir { border:0; font: 0/0 a; text-shadow: none; color: transparent; background-color: transparent; }
+
+/*	CLEARFIX
+	----------------------------------- */
+
+	.cf {
+		*zoom: 1;
+		&:before,
+		&:after {
+			display: table;
+			content: "";
+		}
+		&:after {
+			clear: both;
+		}
+	}
+
+/*	BOX-SIZING
+
+	The box-sizing CSS property is used to alter the default CSS box model used to 
+	calculate widths and heights of elements. It is possible to use this property to 
+	emulate the behavior of browsers that do not correctly support the CSS box model specification.
+
+	Values:
+		content-box | padding-box | border-box
+
+	Default:
+		border-box
+
+	More Info:
+		https://developer.mozilla.org/En/CSS/Box-sizing
+	----------------------------------- */
+
+	.box-sizing(@boxSizing:'border-box') {
+		-webkit-box-sizing: @boxSizing;
+		   -moz-box-sizing: @boxSizing;
+				box-sizing: @boxSizing;
+	}
+
+/*	BOX-SHADOW
+
+	The box-shadow CSS property accepts one or more shadow effects as a comma-separated list. 
+	It allows casting a drop shadow from the frame of almost any element. 
+	If a border-radius is specified on the element with a box shadow, the box shadow takes on the same 
+	rounded corners. The z-ordering of multiple box shadows is the same as multiple text shadows 
+	(the first specified shadow is on top).
+
+	More Info:
+		https://developer.mozilla.org/en/CSS/box-shadow
+	----------------------------------- */
+
+	.box-shadow(@shadow) {
+		-webkit-box-shadow: @shadow;
+		   -moz-box-shadow: @shadow;
+				box-shadow: @shadow;
+	}
+
+/*	BORDER-RADIUS MIXINS
+
+	The border-radius CSS property allows Web authors to define how rounded border corners are. 
+	The curve of each corner is defined using one or two radii, defining its shape: circle or ellipse.
+	----------------------------------- */
+	
+	.border-bottom-left-radius(@radius){
+		-webkit-border-bottom-left-radius	: @radius;
+		   -moz-border-radius-bottomleft	: @radius;
+				border-bottom-left-radius 	: @radius;
+	}
+
+	.border-bottom-right-radius(@radius){
+		-webkit-border-bottom-right-radius	: @radius;
+		   -moz-border-radius-bottomright	: @radius;
+				border-bottom-right-radius 	: @radius;
+	}
+
+	.border-top-left-radius(@radius){
+		-webkit-border-top-left-radius	: @radius;
+		   -moz-border-radius-topleft	: @radius;
+				border-top-left-radius 	: @radius;
+	}
+
+	.border-top-right-radius(@radius){
+		-webkit-border-top-right-radius	: @radius;
+		   -moz-border-radius-topright	: @radius;
+				border-top-right-radius : @radius;
+	}
+
+	.border-bottom-radius (@radius) {
+		.border-bottom-right-radius(@radius);
+		.border-bottom-left-radius(@radius);
+	}
+
+	.border-top-radius (@radius) {
+		.border-top-right-radius(@radius);
+		.border-top-left-radius(@radius);
+	}
+
+	.border-radius (@radius) {
+		.border-bottom-radius(@radius);
+		.border-top-radius(@radius);
+	}

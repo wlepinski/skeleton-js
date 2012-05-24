@@ -1,0 +1,169 @@
+@import 'skeleton.less';
+@import 'reset.less';
+@import 'http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800';
+
+body {
+	width: 520px;
+	margin: 0 auto;
+	font: 62.5% "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	line-height: 1.4em;
+	background: url(../img/rough_diagonal.png) repeat;
+	-webkit-font-smoothing: antialiased;
+
+	#todoapp {
+		.border-bottom-radius(5px);
+		.box-shadow(0px 4px 7px rgba(0, 0, 0, 0.2));
+		background: #fff;
+		padding: 20px;
+		margin-bottom: 40px;
+
+		header {
+			h1 {
+				font-size: 3.6em;
+				font-weight: bold;
+				text-align: center;
+				padding: 0 0 10px 0;
+				margin: 20px 0;
+			}
+
+			#create-todo {
+				input {
+					.box-sizing(border-box);
+					font-family: inherit;
+					font-size: 2.4em;
+					width: 100%;
+					padding: 7px 10px;
+					margin: 0;
+				}
+			}
+		}
+
+		div.content {
+
+			div#todos {
+
+				ul#todo-list {
+					margin: 10px 0 0 0;
+					list-style-type: none;
+
+					li {
+						.cf;
+						margin-left: -20px;
+						margin-right: -20px;
+						padding: 10px 20px;
+
+						&.editing {
+							background: #DDD;
+
+							.view {
+								display: none;
+							}
+
+							.edit-input {
+								display: block;
+							}
+						}
+
+						.edit-input {
+							box-sizing: border-box;
+							padding: 5px 8px;
+							font-size: 2.2em;
+							font-weight: normal;
+							width: 100%;
+						}
+
+						&:hover {
+							background: #EEE;
+						}
+
+						input.edit-input {
+							display: none;
+						}
+
+						input[type=checkbox] {
+							float: left;
+							margin: 6px 5px;
+						}
+
+						div.view {
+							.cf;
+							position: relative;
+
+							span {
+								float: left;
+								width: 400px;
+								margin-left: 10px;
+								font-size: 1.7em;
+								font-weight: 600;
+								line-height: 1.3em;
+								text-shadow: 0px 1px 0px #FFFFFF;
+
+								small {
+									display: block;
+									font-size: .65em;
+									font-weight: 300;
+								}
+							}
+
+							a.destroy {
+								position: absolute;
+								top: 0px;
+								right: 0px;
+								width: 20px;
+								height: 20px;
+								background: url(destroy.png) no-repeat;
+								background-position: 0px 0px;
+
+								&:hover {
+									background-position: 0px -20px;
+								}
+							}
+
+							&.done {
+								span {
+									text-decoration: line-through;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			div#todo-stats {
+				background: #CCC;
+				margin: 1px -20px -20px -20px;
+				padding: 10px 20px;
+				.cf;
+				.border-bottom-radius(4px);
+
+				.todo-count {
+					padding: 5px 0;
+					text-shadow: 0px 1px 0px #FFF;
+				}
+
+				a#clear-completed {
+					.border-radius(20px);
+					float: right;
+					font-weight: bold;
+					background: #999;
+					padding: 6px 12px 4px 12px;
+					text-decoration: none;
+					color: #FFF;
+					text-shadow: 0px -1px 0px rgba(0, 0, 0, 0.2);
+					border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+				}
+			}
+		}
+
+	}
+
+	div#credits {
+		text-align: center;
+		color: #888;
+		font-size: 1.4em;
+		line-height: 1.4em;
+		a {
+			color: #000;
+		}
+	}
+}

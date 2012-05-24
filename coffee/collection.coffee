@@ -17,13 +17,8 @@ define ['subscriber'], (Subscriber) ->
 		#
 		# Constructor
 		constructor: ->
+			#console.log "Collection#constructor"
 			super
-
-			@initialize()
-
-		#
-		# Initialize method
-		initialize: ->
 
 		#
 		# Dispose method

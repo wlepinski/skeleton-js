@@ -24,14 +24,14 @@ define(function() {
     };
 
     Store.prototype.create = function(model) {
-      if (model.id != null) model.id = model.attributes.id = guid();
-      this.data[model.id] = model;
+      if (!model.id) model.id = model.attributes.id = guid();
+      this.data[model.id] = model.toJSON();
       this.save();
       return model;
     };
 
     Store.prototype.update = function(model) {
-      this.data[model.id] = model;
+      this.data[model.id] = model.toJSON();
       this.save();
       return model;
     };

@@ -303,7 +303,37 @@ define(
 				ok(transitionSpy.calledTwice, 'TransitionSpy should be called twice at this point');
 				equal(spy.callCount, 4, 'Spy call count should stay at 4 while silent is activated');
 				equal(view.currentState, 'foo', 'Transitioned state should be "foo"');				
-			})
+			});
+
+			test( "Model/Collection binding", function(){
+				expect(7);
+
+				var view = new FooView();
+				equal(_(view._registeredEvents).keys().length, 0);
+
+				view.modelBind('reset', function(){});
+				equal(_(view._registeredEvents).keys().length, 0, 'should be zero because no model were added');
+
+				view.model = new FooModel();
+				var aFunc = function(){};
+				view.modelBind('reset', aFunc);
+				equal(_(view._registeredEvents).keys().length, 1, 'should be one because a model were added');
+
+				view.modelBind('reset', function(){});
+				view.modelBind('reset', function(){});
+				view.modelBind('reset', function(){});
+				equal(view._registeredEvents['reset'].length, 4, 'should have 4 functions registered');
+
+				view.modelUnbind('reset', aFunc);
+				equal(view._registeredEvents['reset'].length, 3, 'should have 3 functions registered');
+
+				view.modelBind('add', function(){});
+				view.modelBind('remove', function(){});
+				equal(_(view._registeredEvents).keys().length, 3);
+
+				view.modelUnbindAll();
+				equal(_(view._registeredEvents).keys().length, 0);
+			});
 		
 		})();
 

@@ -17,10 +17,7 @@ define(['subscriber'], function(Subscriber) {
 
     function Collection() {
       Collection.__super__.constructor.apply(this, arguments);
-      this.initialize();
     }
-
-    Collection.prototype.initialize = function() {};
 
     Collection.prototype.dispose = function() {
       this.trigger('dispose', this);

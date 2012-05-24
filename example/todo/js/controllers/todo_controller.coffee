@@ -1,10 +1,10 @@
 define [
-	'controller', 
-	'collections/todos_collection', 
-	'views/todos_view', 
+	'controller',
+	'collections/todos_collection',
+	'views/todos_view',
 	'models/todo_model'
 	], (Controller, TodosCollection, TodosView, TodoModel) ->
-	
+
 	###
 	TodoController
 	###
@@ -14,14 +14,22 @@ define [
 			super 'todo'
 
 		index: () ->
-			this.collection = new TodosCollection();
-			this.collection.fetch({
-				success: (data) ->
-					console.log data
-			});
+			@collection = new TodosCollection();
+			@view = new TodosView
+				collection : @collection
 
-			this.view = new TodosView({
-				collection : this.collection
-			});
+			$('#content').append(@view.el)
+
+			@collection.fetch()
+
+		dashboard: () ->
+			@collection = new TodosCollection();
+			@view = new TodosView
+				collection : @collection
+
+			console.log @view.el
+			$('#content').append(@view.el)
+
+			@collection.fetch()
 
 	TodoController

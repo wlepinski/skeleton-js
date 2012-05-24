@@ -6,39 +6,10 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
   /*
   	Private Methods
   */
-  var View, wrapMethods;
-  wrapMethods = function(methodNames) {
-    var instance, name, wrapMethod, _i, _len, _results;
-    instance = this;
-    wrapMethod = function(methodName) {
-      var func;
-      func = instance[methodName];
-      return instance[methodName] = function() {
-        var beforeRet,
-          _this = this;
-        beforeRet = instance["before" + (StringEx.upcase(methodName))].apply(instance, arguments);
-        if ((beforeRet != null) && _.has(beforeRet, 'done')) {
-          beforeRet.done(function() {
-            func.apply(instance, arguments);
-            return instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
-          });
-        } else {
-          func.apply(this, arguments);
-          instance["after" + (StringEx.upcase(methodName))].apply(instance, arguments);
-        }
-        return func;
-      };
-    };
-    _results = [];
-    for (_i = 0, _len = methodNames.length; _i < _len; _i++) {
-      name = methodNames[_i];
-      _results.push(wrapMethod(name));
-    }
-    return _results;
-  };
   /*
   	View Class
   */
+  var View;
   View = (function(_super) {
 
     __extends(View, _super);
@@ -46,8 +17,6 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
     _(View.prototype).defaults(Subscriber);
 
     _(View.prototype).defaults(StateMachine);
-
-    View.prototype.dispose = false;
 
     View.prototype.containerSelector = null;
 
@@ -59,122 +28,89 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
 
     View.prototype.subscriptions = {};
 
+    View.prototype.disposed = false;
+
     function View(options) {
       if (options == null) options = {};
-      this._registeredCollections = {};
+      this._registeredEvents = {};
       this.currentState = 'normal';
-      wrapMethods.apply(this, [['render', 'initialize']]);
       View.__super__.constructor.call(this, options);
     }
+
+    View.prototype.delegate = function(eventType, selector, handler) {
+      if (typeof eventType !== 'string') {
+        throw new TypeError("View#delegate: first argument must be a string " + this.cid);
+      }
+      if (!_.isFunction(handler)) {
+        throw new TypeError("View#delegate: handler should be a function on " + this.cid);
+      }
+      eventType += ".delegate." + this.cid;
+      handler = _(handler).bind(this);
+      return this.$el.on(eventType, selector, handler);
+    };
 
     View.prototype.initialize = function(options) {
       if (options == null) options = {};
       return View.__super__.initialize.call(this, options);
     };
 
-    View.prototype.render = function() {};
-
-    View.prototype.beforeRender = function() {
-      var calls, collection, _i, _len, _ref;
-      calls = [];
-      _ref = this.getRegisteredCollections();
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        collection = _ref[_i];
-        calls.push(collection.fetch());
+    View.prototype.modelBind = function(eventType, handlerFunc) {
+      var handlers, model, _base;
+      if (!_(eventType).isString()) {
+        throw new TypeError('View#modelBind: eventType should be a string');
       }
-      return $.when.apply(this, calls);
+      if (!_(handlerFunc).isFunction()) {
+        throw new TypeError('View#modelBind: handlerFunc should be a function');
+      }
+      model = this.model || this.collection;
+      if (!model) return;
+      handlers = (_base = this._registeredEvents)[eventType] || (_base[eventType] = []);
+      if (_(handlers).include(handlerFunc)) return;
+      handlers.push(handlerFunc);
+      return model.on(eventType, handlerFunc, this);
     };
 
-    View.prototype.afterRender = function() {
-      if (this.containerSelector != null) {
-        return this.containerSelector.empty().append(this.$el);
+    View.prototype.modelUnbind = function(eventType, handlerFunc) {
+      var handlers, index, model;
+      if (!_(eventType).isString()) {
+        throw new TypeError('View#modelUnbind: eventType should be a string');
       }
+      if (!_(handlerFunc).isFunction()) {
+        throw new TypeError('View#modelUnbind: handlerFunc should be a function');
+      }
+      model = this.model || this.collection;
+      if (!model) return;
+      handlers = this._registeredEvents[eventType];
+      if (handlers) {
+        index = _(handlers).indexOf(handlerFunc);
+        if (index > -1) handlers.splice(index, 1);
+        if (handlers.length === 0) delete this._registeredEvents[type];
+      }
+      return model.off(eventType, handlerFunc, this);
     };
 
-    View.prototype.beforeInitialize = function(options) {
-      var collection, method, name, subscription, _ref, _ref2, _results;
-      _ref = this.subscriptions;
-      for (subscription in _ref) {
-        method = _ref[subscription];
-        if (!_.isFunction(this[method])) {
-          throw new Error("The method " + method + " does not exist " + this.cid);
+    View.prototype.modelUnbindAll = function() {
+      var handler, handlers, model, type, _i, _len, _ref;
+      if (!this._registeredEvents) return;
+      model = this.model || this.collection;
+      if (!model) return;
+      _ref = this._registeredEvents;
+      for (type in _ref) {
+        if (!__hasProp.call(_ref, type)) continue;
+        handlers = _ref[type];
+        for (_i = 0, _len = handlers.length; _i < _len; _i++) {
+          handler = handlers[_i];
+          model.unbind(type, handler);
         }
-        this.subscribeEvent(subscription, this[method]);
       }
-      if (options && (options.containerSelector != null)) {
-        if (_.isString(options.containerSelector)) {
-          this.containerSelector = $(options.containerSelector);
-        }
-      }
-      if (_.has(options, 'collections')) {
-        _ref2 = options.collections;
-        _results = [];
-        for (name in _ref2) {
-          collection = _ref2[name];
-          _results.push(this.registerViewCollection(name, collection));
-        }
-        return _results;
-      }
-    };
-
-    View.prototype.afterInitialize = function(options) {
-      var byDefault, byOption;
-      this.startStateMachine();
-      if (!this.containerSelector) return;
-      byOption = options && options.autoRender === true;
-      byDefault = this.autoRender && !byOption;
-      if (byOption || byDefault) return this.render();
-    };
-
-    View.prototype.getRegisteredCollections = function() {
-      return _(this._registeredCollections).values();
-    };
-
-    View.prototype.getRegisteredCollection = function(name) {
-      if (_.has(this._registeredCollections, name)) {
-        return this._registeredCollections[name];
-      }
-      return null;
-    };
-
-    View.prototype.registerViewCollection = function(name, collection) {
-      if (!_.has(this._registeredCollections, name)) {
-        return this._registeredCollections[name] = collection;
-      }
-    };
-
-    View.prototype.unregisterViewCollection = function(name) {
-      var collection;
-      if (!_.has(this._registeredCollections, name)) {
-        throw new Error("View#unregisterViewCollection: The collection with name " + name + " sent is not registered on this view");
-      }
-      collection = this._registeredCollections[name];
-      collection.dispose();
-      return delete this._registeredCollections[name];
-    };
-
-    View.prototype.unregisterViewAllCollections = function() {
-      var name, _i, _len, _ref, _results;
-      _ref = _.keys(this._registeredCollections);
-      _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        name = _ref[_i];
-        _results.push(this.unregisterViewCollection(name));
-      }
-      return _results;
-    };
-
-    View.prototype.modelBind = function(eventType, handlerFunc, model) {
-      if (model == null) return model = this.model || this.collection;
-    };
-
-    View.prototype.modelUnbind = function(eventType, handlerFunc, model) {
-      if (model == null) return model = this.model || this.collection;
+      return this._registeredEvents = {};
     };
 
     View.prototype.dispose = function() {
-      this.unregisterViewAllCollections();
+      if (this.disposed) return;
+      this.modelUnbindAll();
       this.unsubscribeAllEvents();
+      this.remove();
       return this.disposed = true;
     };
 

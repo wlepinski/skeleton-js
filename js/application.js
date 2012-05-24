@@ -7,9 +7,6 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
     this.initializeController(controllerName, params, controllerClass);
     return this.callControllerAction(action, params);
   };
-  /*
-  	Application Class
-  */
   Application = (function() {
 
     _(Application.prototype).defaults(Backbone.Events);
@@ -28,6 +25,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
 
     function Application(name) {
       this.name = name;
+      console.log("Application#constructor: " + this.name);
       if (!(this.name != null)) {
         throw new Error('Every application must have a name');
       }
@@ -38,6 +36,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
 
     Application.prototype.initializeEvents = function() {
       var _this = this;
+      console.log("Application#initializeEvents");
       return EventBus.subscribe('Route.Matched', function(route, params) {
         var action, controllerName;
         controllerName = route.controller;
@@ -49,31 +48,40 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
     Application.prototype.initializeControllers = function() {};
 
     Application.prototype.initializeControllerAndAction = function(controllerName, action, params) {
-      var callback, controllerFileName, isSameAction, isSameController;
+      var controllerFileName, isSameAction, isSameController;
       if (action == null) action = 'index';
       if (params == null) params = {};
+      console.log("Application#initializeControllerAndAction", controllerName, action, params);
       isSameController = this.currentControllerName === controllerName;
       if (isSameController) {
-        return isSameAction = this.currentAction === action && ((this.currentParams != null) || this.currentParams);
+        isSameAction = this.currentAction === action && ((this.currentParams != null) || this.currentParams);
+        this.disposeCurrentAction();
+        if (!isSameAction) return this.callControllerAction(action, params);
       } else {
         controllerFileName = StringExt.underscorize(controllerName + '_controller');
-        callback = _.bind(onControllerLoaded, this);
-        return require(['controllers/' + controllerFileName], _(callback).bind(this, controllerName, action, params));
+        return require(['controllers/' + controllerFileName], _(onControllerLoaded).bind(this, controllerName, action, params));
       }
     };
 
     Application.prototype.disposeCurrentController = function() {
+      console.log("Application#disposeCurrentController");
       if (this.currentController) {
+        console.log("Application#disposeCurrentController -> " + this.currentController);
         if (!((this.currentController.dispose != null) && _.isFunction(this.currentController.dispose))) {
-          throw new Error('Application#onControllerLoaded: A dispose method should be provided on ' + this.currentControllerName);
+          throw new Error("Application#onControllerLoaded: A dispose method should be provided on " + this.currentControllerName);
         }
         this.currentController.dispose();
         this.currentController = null;
         this.currentControllerName = null;
-        this.currentView = null;
-        this.currentViewParams = null;
-        return this.currentParams = null;
+        return this.disposeCurrentAction();
       }
+    };
+
+    Application.prototype.disposeCurrentAction = function() {
+      this.currentView.dispose();
+      this.currentView = null;
+      this.currentViewParams = null;
+      return this.currentParams = null;
     };
 
     Application.prototype.initializeController = function(controllerName, params, controllerClass) {
@@ -93,7 +101,7 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
       }
       actionName = StringExt.camelize(action);
       if (!_.isFunction(this.currentController[action])) {
-        throw new Error("Application#callControllerAction: We can't find a method called " + actionName + " on the controller " + this.currentController.id);
+        throw new Error("We can't find a method called '" + actionName + "' on the controller with id '" + this.currentController.id + "'");
       }
       this.currentController[actionName](params);
       this.currentView = this.currentController.view;

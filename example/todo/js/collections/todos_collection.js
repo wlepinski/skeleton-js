@@ -17,6 +17,25 @@ define(['collection', 'models/todo_model', 'utils/store'], function(Collection, 
 
     TodosCollection.prototype.localStorage = new Store("todos");
 
+    TodosCollection.prototype.getDone = function() {
+      return this.filter(function(todo) {
+        return todo.get('done');
+      });
+    };
+
+    TodosCollection.prototype.getRemaining = function() {
+      return this.without.apply(this, this.getDone());
+    };
+
+    TodosCollection.prototype.comparator = function(first, second) {
+      var firDateCreated, secDateCreated;
+      firDateCreated = new Date(first.get('dateCreated')).getTime();
+      secDateCreated = new Date(second.get('dateCreated')).getTime();
+      if (firDateCreated < secDateCreated) return 1;
+      if (firDateCreated === secDateCreated) return 0;
+      if (firDateCreated > secDateCreated) return -1;
+    };
+
     return TodosCollection;
 
   })(Collection);

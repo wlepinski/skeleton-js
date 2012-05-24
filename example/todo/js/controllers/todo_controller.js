@@ -16,14 +16,21 @@ define(['controller', 'collections/todos_collection', 'views/todos_view', 'model
 
     TodoController.prototype.index = function() {
       this.collection = new TodosCollection();
-      this.collection.fetch({
-        success: function(data) {
-          return console.log(data);
-        }
-      });
-      return this.view = new TodosView({
+      this.view = new TodosView({
         collection: this.collection
       });
+      $('#content').append(this.view.el);
+      return this.collection.fetch();
+    };
+
+    TodoController.prototype.dashboard = function() {
+      this.collection = new TodosCollection();
+      this.view = new TodosView({
+        collection: this.collection
+      });
+      console.log(this.view.el);
+      $('#content').append(this.view.el);
+      return this.collection.fetch();
     };
 
     return TodoController;

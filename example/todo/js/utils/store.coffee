@@ -19,15 +19,15 @@ define ->
 			localStorage.setItem @name, JSON.stringify @data
 
 		create: (model) ->
-			if model.id?
+			if !model.id
 				model.id = model.attributes.id = guid()
-			@data[model.id] = model
+			@data[model.id] = model.toJSON()
 			@save()
 
 			return model
 
 		update: (model) ->
-			@data[model.id] = model
+			@data[model.id] = model.toJSON()
 			@save()
 			return model
 

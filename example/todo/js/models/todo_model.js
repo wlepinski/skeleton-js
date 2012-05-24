@@ -11,6 +11,12 @@ define(['model'], function(Model) {
       TodoModel.__super__.constructor.apply(this, arguments);
     }
 
+    TodoModel.prototype.defaults = {
+      text: null,
+      dateCreated: null,
+      done: false
+    };
+
     return TodoModel;
 
   })(Model);
