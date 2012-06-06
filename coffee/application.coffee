@@ -99,10 +99,11 @@ define [
 			if isSameController
 				isSameAction = @currentAction is action and (@currentParams? or @currentParams)
 
-				# Dispose current action
-				@disposeCurrentAction().done () =>
-					# Call the new controller unless the action is not the same
-					@callControllerAction action, params unless isSameAction
+				unless isSameAction
+					# Dispose current action
+					@disposeCurrentAction().done () =>
+						# Call the new controller unless the action is not the same
+						@callControllerAction action, params
 			else
 				controllerFileName = StringExt.underscorize controllerName + '_controller'
 
@@ -220,14 +221,13 @@ define [
 
 					# Trigger an event called Action.Called passing up the action
 					@trigger 'Action.Called', @currentView
-
 					@viewDeferred = null
 
+					# Resolve the promise
 					do @loadingPromise.resolve
 
 					# We set to null the loading promise only if there's no view pending to be resolved
 					@loadingPromise = null if @loadingPromise.state() == 'resolved'
-
 
 			# Ok, no deferred found, the developer sent a plain view?
 			else if @currentController.view?
@@ -235,6 +235,8 @@ define [
 				@currentView = @currentController.view
 				# Trigger an event called Action.Called passing up the action
 				@trigger 'Action.Called', @currentView
+				# Resolve the promise
+				do @loadingPromise.resolve
 
 			# Well, we unfortunelly have an error :(
 			else
