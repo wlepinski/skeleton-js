@@ -73,6 +73,18 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 				@$containerSelector.append(@el)
 				@$el.fadeIn 200
 
+		fillModel: (model, form) ->
+            _.each form.find(':input'), (input) ->
+                modelFieldName = $(input).data('field')
+                if modelFieldName?
+                    model.set modelFieldName, $(input).val()
+
+        fillForm : (form, model) ->
+            _.each form.find(':input'), (input) ->
+                modelFieldName = $(input).data('field')
+                if modelFieldName?
+                    $(input).val(model.get(modelFieldName))
+
 		#
 		# Delegate
 		delegate: (eventType, selector, handler) ->
@@ -83,14 +95,24 @@ define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine,
 			unless _.isFunction handler
 				throw new TypeError "View#delegate: handler should be a function on #{@cid}"
 
-			# Add an event namespace
-			eventType += ".delegate.#{@cid}"
+			_delegateHandler = (eventType, selector, handler) =>
+				# Add an event namespace
+				eventType += ".delegate.#{@cid}"
 
-			# Bind the handler to the view
-			handler = _(handler).bind(this)
+				# Bind the handler to the view
+				handler = _(handler).bind @
 
-      		# Register the handler
-			@$el.on eventType, selector, handler
+	      		# Register the handler
+				@$el.on eventType, selector, handler
+
+			# Check wheather the eventType has multiple event declared
+			eventTypes = eventType.split(',')
+			if eventTypes.length > 1
+				# Remove adicional spaces
+				_.each eventTypes, (eventType) ->
+					_delegateHandler $.trim(eventType), selector, handler
+			else
+				_delegateHandler eventType, selector, handler
 
 		#
 		# Initialize method
