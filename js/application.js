@@ -75,11 +75,11 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
       isSameController = this.currentControllerName === controllerName;
       if (isSameController) {
         isSameAction = this.currentAction === action && ((this.currentParams != null) || this.currentParams);
-        return this.disposeCurrentAction().done(function() {
-          if (!isSameAction) {
+        if (!isSameAction) {
+          return this.disposeCurrentAction().done(function() {
             return _this.callControllerAction(action, params);
-          }
-        });
+          });
+        }
       } else {
         controllerFileName = StringExt.underscorize(controllerName + '_controller');
         return require(['controllers/' + controllerFileName], _(onControllerLoaded).bind(this, controllerName, action, params));
@@ -163,7 +163,8 @@ define(['eventbus', 'ext/string'], function(EventBus, StringExt) {
         });
       } else if (this.currentController.view != null) {
         this.currentView = this.currentController.view;
-        return this.trigger('Action.Called', this.currentView);
+        this.trigger('Action.Called', this.currentView);
+        return this.loadingPromise.resolve();
       } else {
         throw new Error("The controller action " + actionName + " of the " + this.currentController.id + " isn't returning a view.");
       }

@@ -70,16 +70,48 @@ define(['subscriber', 'state_machine', 'ext/string'], function(Subscriber, State
       }
     };
 
+    View.prototype.fillModel = function(model, form) {
+      return _.each(form.find(':input'), function(input) {
+        var modelFieldName;
+        modelFieldName = $(input).data('field');
+        if (modelFieldName != null) {
+          return model.set(modelFieldName, $(input).val());
+        }
+      });
+    };
+
+    View.prototype.fillForm = function(form, model) {
+      return _.each(form.find(':input'), function(input) {
+        var modelFieldName;
+        modelFieldName = $(input).data('field');
+        if (modelFieldName != null) {
+          return $(input).val(model.get(modelFieldName));
+        }
+      });
+    };
+
     View.prototype.delegate = function(eventType, selector, handler) {
+      var eventTypes, _delegateHandler,
+        _this = this;
       if (typeof eventType !== 'string') {
         throw new TypeError("View#delegate: first argument must be a string " + this.cid);
       }
       if (!_.isFunction(handler)) {
         throw new TypeError("View#delegate: handler should be a function on " + this.cid);
       }
-      eventType += ".delegate." + this.cid;
-      handler = _(handler).bind(this);
-      return this.$el.on(eventType, selector, handler);
+      _delegateHandler = function(eventType, selector, handler) {
+        eventType += ".delegate." + _this.cid;
+        handler = _(handler).bind(_this);
+        return _this.$el.on(eventType, selector, handler);
+      };
+      eventTypes = eventType.split(',');
+      if (eventTypes.length > 1) {
+        return _.each(eventTypes, function(eventType) {
+          return _delegateHandler($.trim(eventType), selector, handler);
+        });
+      } else {
+        return _delegateHandler(eventType, selector, handler);
+      }
     };
 
     View.prototype.initialize = function(options) {
