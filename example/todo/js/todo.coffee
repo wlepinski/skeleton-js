@@ -28,7 +28,7 @@ define ['application', 'router', 'views/todos_header_view'], (Application, Route
 		constructor: ->
 			super 'TodoApplication'
 
-		initializeControllers: ->
+		initialize: ->
 			new TodosHeaderView()
 
 	app = new TodoApplication()

@@ -1,4 +1,4 @@
-define ['subscriber', 'state_machine', 'ext/string'], (Subscriber, StateMachine, StringEx) ->
+define ['subscriber', 'state_machine', 'string'], (Subscriber, StateMachine, StringEx) ->
 
 	'use strict'
 

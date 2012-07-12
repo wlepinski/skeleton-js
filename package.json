@@ -1,0 +1,29 @@
+{
+  "name": "skeleton-js",
+  "description": "SkeletonJS is a application architecture built in top of BackboneJS",
+  "version": "0.0.1",
+  "homepage": "https://github.com/wlepinski/skeleton-js",
+  "author": {
+    "name": "William Lepinski",
+    "email": "willsp@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wlepinski/skeleton-js"
+  },
+  "bugs": {
+    "url": "https://github.com/wlepinski/skeleton-js/issues"
+  },
+  "engines": {
+    "node": ">=0.6"
+  },
+  "scripts": {
+    "test": "grunt test"
+  },
+  "dependencies": {
+    "grunt": "0.3.x"
+  },
+  "devDependencies": {
+  },
+  "keywords": []
+}

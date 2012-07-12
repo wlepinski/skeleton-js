@@ -1,6 +1,6 @@
 define [
 	'eventbus'
-	'ext/string'
+	'string'
 ], (EventBus, StringExt) ->
 
 	'use strict'
